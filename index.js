@@ -52,8 +52,8 @@ let jsonState = {
     date: "",
     location: "",
     description: "",
-    injuries: false,
-    owner: false,
+    injuries: undefined,
+    owner: undefined,
     complete: false,
     question: ""
 };
