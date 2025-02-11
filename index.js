@@ -1,11 +1,26 @@
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
+const helmet = require("helmet");
 require("dotenv").config();
 
 const app = express();
+app.use(cors(corsOptions));
+app.use(helmet());
 app.use(express.json());
-app.use(cors());
+const allowedOrigins = ['https://aivo-frontend.netlify.app', 'http://localhost:3000'];
+
+const corsOptions = {
+    origin: (origin, callback) => {
+      if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+        callback(null, true);
+      } else {
+        callback(new Error('No permitido por CORS'));
+      }
+    },
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
+  };
 
 const AI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.AI_API_KEY}`;
 
@@ -44,7 +59,7 @@ app.post("/api/analyze", async (req, res) => {
         - date: Fecha en formato YYYY-MM-DD. Si el usuario dice "hoy", usa la fecha actual. Si dice "ayer", usa la fecha de ayer.
         - location: Lugar del suceso (dirección o "domicilio titular").
         - description: Resumen breve en una oración.
-        - injuries: true o false (si hay heridos). Si el usuario menciona una caída, asume que hay heridos a menos que diga explícitamente "no hubo heridos".
+        - injuries: true o false (si hay heridos). Siempre consultar si hubo heridos salvo que este implicitamente dicho".
         - owner: true o false (si el usuario es el titular del objeto afectado).
         - complete: true si la información es suficiente, false si falta algo.
         - question: Si falta información, haz una pregunta específica para completar el JSON, si no, deja ""
