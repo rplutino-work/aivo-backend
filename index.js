@@ -76,12 +76,12 @@ app.post("/api/analyze", async (req, res) => {
         ${JSON.stringify(jsonState, null, 2)}
 
         Instrucciones:
-        - date: Fecha en formato DD-MM-YYYY.
-        - location: Lugar del suceso.
+        - date: Fecha en formato DD-MM-YYYY. Si es hoy usar el dia actual, si es ayer usar el dia anterior.
+        - location: Lugar del suceso. Preguntar si no es claro.
         - description: Resumen breve en una oración.
         - injuries: true si hay heridos o lesiones o rompeduras de miembros o patologias fisicas, sino false. Siempre consultar si hubo heridos.
         - owner: true o false (si el usuario es el titular del objeto afectado).
-        - complete: true si la información del json esta completa, false si falta algo.
+        - complete: true si la información del json esta completa y la situacion es clara, false si falta algo.
         - question: Si falta información, haz una pregunta específica para completar el JSON. Si no falta nada, deja "".
 
         Texto del usuario: "${text}"
