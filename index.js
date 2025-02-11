@@ -90,13 +90,13 @@ app.post("/api/analyze", async (req, res) => {
             } else if (text.toLowerCase().includes("ayer")) {
                 parsedJson.date = getYesterdayDate();
             }
-            
+
             // Mejora en la lógica de la pregunta sobre heridos
-            if (text.toLowerCase().includes("caí") || text.toLowerCase().includes("caída")) {
+            if (text.toLowerCase().includes("caí") || text.toLowerCase().includes("caída") || text.toLowerCase().includes("incendio")) {
                 if (!text.toLowerCase().includes("no hubo heridos") && !text.toLowerCase().includes("sin heridos")) {
                     parsedJson.injuries = "¿Hubo heridos en el incidente?";  // Siempre preguntar
                 } else {
-                    parsedJson.injuries = false;  // Si ya está claro que no hubo heridos
+                    parsedJson.injuries = false;  // Si está explícitamente claro que no hubo heridos
                 }
             } else if (parsedJson.injuries === undefined) {
                 parsedJson.injuries = "¿Hubo heridos en el incidente?";  // Preguntar si no está claro
