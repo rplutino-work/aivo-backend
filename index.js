@@ -3,11 +3,6 @@ const cors = require("cors");
 const axios = require("axios");
 require("dotenv").config();
 
-const app = express();
-app.use(cors(corsOptions));
-app.use(express.json());
-const allowedOrigins = ['https://aivo-frontend.netlify.app', 'http://localhost:3000'];
-
 const corsOptions = {
     origin: (origin, callback) => {
       if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
@@ -19,6 +14,13 @@ const corsOptions = {
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
   };
+
+const app = express();
+app.use(cors(corsOptions));
+app.use(express.json());
+const allowedOrigins = ['https://aivo-frontend.netlify.app', 'http://localhost:3000'];
+
+
 
 const AI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.AI_API_KEY}`;
 
