@@ -70,7 +70,7 @@ app.post("/api/analyze", async (req, res) => {
 
         // Construir el prompt con el estado actual del JSON
         const prompt = `
-        Analiza el siguiente texto y actualiza el siguiente JSON con la información proporcionada por el usuario. Solo actualiza los campos que estén vacíos o que necesiten corrección. No hagas preguntas sobre campos que ya estén completos.
+        Analiza el siguiente texto y actualiza el siguiente JSON con la información proporcionada por el usuario y si no es claro has preguntas para entender. Solo actualiza los campos que estén vacíos o que necesiten corrección. No hagas preguntas sobre campos que ya estén completos.
 
         JSON actual:
         ${JSON.stringify(jsonState, null, 2)}
@@ -80,7 +80,7 @@ app.post("/api/analyze", async (req, res) => {
         - location: Lugar del suceso. Preguntar si no es claro.
         - description: Resumen breve en una oración.
         - injuries: true si hay heridos o lesiones o rompeduras de miembros o patologias fisicas, sino false. Siempre consultar si hubo heridos.
-        - owner: true o false (si el usuario es el titular del objeto afectado).
+        - owner: true o false (si el usuario es el titular del objeto afectado). Preguntar si no es claro.
         - complete: true si la información del json esta completa y la situacion es clara, false si falta algo.
         - question: Si falta información, haz una pregunta específica para completar el JSON. Si no falta nada, deja "".
 
