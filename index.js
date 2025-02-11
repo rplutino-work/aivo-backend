@@ -1,12 +1,10 @@
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
-const helmet = require("helmet");
 require("dotenv").config();
 
 const app = express();
 app.use(cors(corsOptions));
-app.use(helmet());
 app.use(express.json());
 const allowedOrigins = ['https://aivo-frontend.netlify.app', 'http://localhost:3000'];
 
