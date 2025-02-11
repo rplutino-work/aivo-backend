@@ -24,49 +24,69 @@ const allowedOrigins = ['https://aivo-frontend.netlify.app', 'http://localhost:3
 
 const AI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.AI_API_KEY}`;
 
+const validateJson = (json, conversation) => {
+    // Verificar si ya se ha respondido alguna pregunta
+    const userResponses = conversation.filter(entry => entry.role === 'user');
+
+    if (!json.date && !userResponses.some(response => response.content.toLowerCase().includes('hoy') || response.content.toLowerCase().includes('ayer'))) {
+        json.complete = false;
+        json.question = "¿Cuál es la fecha del suceso?";
+    } else if (!json.location && !userResponses.some(response => response.content.toLowerCase().includes("lugar"))) {
+        json.complete = false;
+        json.question = "¿Dónde ocurrió el suceso?";
+    } else if (json.injuries === undefined) {
+        json.complete = false;
+        json.question = "¿Hubo heridos?";
+    } else if (json.owner === undefined && !userResponses.some(response => response.content.toLowerCase().includes("titular"))) {
+        json.complete = false;
+        json.question = "¿Eres el titular del objeto afectado?";
+    } else {
+        json.complete = true;
+        json.question = "";
+    }
+
+    return json;
+};
+
+let jsonState = {
+    date: "",
+    location: "",
+    description: "",
+    injuries: false,
+    owner: false,
+    complete: false,
+    question: ""
+};
+
 app.post("/api/analyze", async (req, res) => {
     try {
         console.log("🔹 Recibí una solicitud:", req.body);
 
         const { text, conversation } = req.body;
+
         if (!text) {
             return res.status(400).json({ error: "Falta el parámetro 'text'" });
         }
 
-        // Obtener la fecha actual
-        const getCurrentDate = () => {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, "0");
-            const day = String(today.getDate()).padStart(2, "0");
-            return `${year}-${month}-${day}`;
-        };
-
-        // Obtener la fecha de ayer
-        const getYesterdayDate = () => {
-            const today = new Date();
-            const yesterday = new Date(today);
-            yesterday.setDate(today.getDate() - 1);
-            const year = yesterday.getFullYear();
-            const month = String(yesterday.getMonth() + 1).padStart(2, "0");
-            const day = String(yesterday.getDate()).padStart(2, "0");
-            return `${year}-${month}-${day}`;
-        };
-
-        // Construir el prompt
+        // Construir el prompt con el estado actual del JSON
         const prompt = `
-        Analiza el siguiente texto y extrae las siguientes variables en formato JSON:
-        - date: Fecha en formato YYYY-MM-DD. Si el usuario dice "hoy", usa la fecha actual. Si dice "ayer", usa la fecha de ayer.
-        - location: Lugar del suceso (dirección o "domicilio titular").
+        Analiza el siguiente texto y actualiza el siguiente JSON con la información proporcionada por el usuario. Solo actualiza los campos que estén vacíos o que necesiten corrección. No hagas preguntas sobre campos que ya estén completos.
+
+        JSON actual:
+        ${JSON.stringify(jsonState, null, 2)}
+
+        Instrucciones:
+        - date: Fecha en formato DD-MM-YYYY.
+        - location: Lugar del suceso.
         - description: Resumen breve en una oración.
-        - injuries: true o false (si hay heridos). Siempre consultar si hubo heridos salvo que este implicitamente dicho".
+        - injuries: true si hay heridos o lesiones o rompeduras de miembros o patologias fisicas, sino false. Siempre consultar si hubo heridos.
         - owner: true o false (si el usuario es el titular del objeto afectado).
-        - complete: true si la información es suficiente, false si falta algo.
-        - question: Si falta información, haz una pregunta específica para completar el JSON, si no, deja ""
+        - complete: true si la información del json esta completa, false si falta algo.
+        - question: Si falta información, haz una pregunta específica para completar el JSON. Si no falta nada, deja "".
 
         Texto del usuario: "${text}"
 
-        Responde solo con el JSON. No agregues explicaciones ni texto adicional.`;
+        Responde solo con el JSON actualizado. No agregues explicaciones ni texto adicional.`;
 
         const response = await axios.post(AI_API_URL, {
             contents: [{ parts: [{ text: prompt }] }],
@@ -84,44 +104,34 @@ app.post("/api/analyze", async (req, res) => {
         try {
             let parsedJson = JSON.parse(aiResponse);
 
+            // Actualizar solo los campos faltantes en el JSON
+            if (parsedJson.date && !jsonState.date) {
+                jsonState.date = parsedJson.date;
+            }
+            if (parsedJson.location && !jsonState.location) {
+                jsonState.location = parsedJson.location;
+            }
+            if (parsedJson.description && !jsonState.description) {
+                jsonState.description = parsedJson.description;
+            }
+            if (parsedJson.injuries !== undefined && jsonState.injuries === undefined) {
+                jsonState.injuries = parsedJson.injuries;
+            }
+            if (parsedJson.owner !== undefined && jsonState.owner === undefined) {
+                jsonState.owner = parsedJson.owner;
+            }
+            if (parsedJson.complete !== undefined) {
+                jsonState.complete = parsedJson.complete;
+            }
+            if (parsedJson.question) {
+                jsonState.question = parsedJson.question;
+            }
+
             // Validar y corregir el JSON
-            if (text.toLowerCase().includes("hoy")) {
-                parsedJson.date = getCurrentDate();
-            } else if (text.toLowerCase().includes("ayer")) {
-                parsedJson.date = getYesterdayDate();
-            }
-            if (text.toLowerCase().includes("caí") || text.toLowerCase().includes("caída")) {
-                if (!text.toLowerCase().includes("no hubo heridos")) {
-                    parsedJson.injuries = true;
-                } else {
-                    parsedJson.injuries = false;
-                }
-            }
+            jsonState = validateJson(jsonState, conversation);
 
-            const validateJson = (json) => {
-                if (!json.date && !json.question.includes("fecha") || json.date === "YYYY-MM-DD") {
-                    json.complete = false;
-                    json.question = "¿Cuál es la fecha del suceso?";
-                }
-                if (!json.location && !json.question.includes("lugar")) {
-                    json.complete = false;
-                    json.question = "¿Dónde ocurrió el suceso?";
-                }
-                if (json.injuries === undefined && !json.question.includes("heridos")) {
-                    json.complete = false;
-                    json.question = "¿Hubo heridos en el incidente?";
-                }
-                if (json.owner === undefined && !json.question.includes("titular")) {
-                    json.complete = false;
-                    json.question = "¿Eres el titular del objeto afectado?";
-                }
-                return json;
-            };
-
-            parsedJson = validateJson(parsedJson);
-
-            console.log("🔹 Respuesta de la IA:", parsedJson);
-            res.json(parsedJson);
+            console.log("🔹 Respuesta de la IA:", jsonState);
+            res.json(jsonState);
         } catch (parseError) {
             console.error("❌ Error al parsear JSON:", aiResponse);
             res.status(500).json({ error: "La IA devolvió un JSON mal formado." });
@@ -131,6 +141,7 @@ app.post("/api/analyze", async (req, res) => {
         res.status(500).json({ error: "Error al procesar la solicitud." });
     }
 });
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Servidor corriendo en el puerto ${PORT}`));
