@@ -59,7 +59,7 @@ app.post("/api/analyze", async (req, res) => {
         - date: Fecha en formato YYYY-MM-DD. Si el usuario dice "hoy", usa la fecha actual. Si dice "ayer", usa la fecha de ayer.
         - location: Lugar del suceso (dirección o "domicilio titular").
         - description: Resumen breve en una oración.
-        - injuries: true o false (si hay heridos). Siempre consultar si hubo heridos salvo que este implicitamente dicho".
+        - injuries: true o false (si hay heridos). Siempre preguntar si hubo heridos, salvo que esté explícitamente mencionado en el texto.
         - owner: true o false (si el usuario es el titular del objeto afectado).
         - complete: true si la información es suficiente, false si falta algo.
         - question: Si falta información, haz una pregunta específica para completar el JSON, si no, deja ""
@@ -90,12 +90,16 @@ app.post("/api/analyze", async (req, res) => {
             } else if (text.toLowerCase().includes("ayer")) {
                 parsedJson.date = getYesterdayDate();
             }
+            
+            // Mejora en la lógica de la pregunta sobre heridos
             if (text.toLowerCase().includes("caí") || text.toLowerCase().includes("caída")) {
-                if (!text.toLowerCase().includes("no hubo heridos")) {
-                    parsedJson.injuries = true;
+                if (!text.toLowerCase().includes("no hubo heridos") && !text.toLowerCase().includes("sin heridos")) {
+                    parsedJson.injuries = "¿Hubo heridos en el incidente?";  // Siempre preguntar
                 } else {
-                    parsedJson.injuries = false;
+                    parsedJson.injuries = false;  // Si ya está claro que no hubo heridos
                 }
+            } else if (parsedJson.injuries === undefined) {
+                parsedJson.injuries = "¿Hubo heridos en el incidente?";  // Preguntar si no está claro
             }
 
             const validateJson = (json) => {
@@ -131,6 +135,7 @@ app.post("/api/analyze", async (req, res) => {
         res.status(500).json({ error: "Error al procesar la solicitud." });
     }
 });
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Servidor corriendo en el puerto ${PORT}`));
