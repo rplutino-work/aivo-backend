@@ -6,7 +6,7 @@ require("dotenv").config();
 const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
-const allowedOrigins = ['https://tusitio.netlify.app', 'http://localhost:3000/'];
+const allowedOrigins = ['https://aivo-frontend.netlify.app', 'http://localhost:3000'];
 
 const corsOptions = {
     origin: (origin, callback) => {
