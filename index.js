@@ -34,12 +34,12 @@ const validateJson = (json, conversation) => {
     } else if (!json.location && !userResponses.some(response => response.content.toLowerCase().includes("lugar"))) {
         json.complete = false;
         json.question = "¿Dónde ocurrió el suceso?";
-    } else if (json.injuries === undefined) {
+    } else if (json.injuries === undefined || null) {
         json.complete = false;
         json.question = "¿Hubo heridos?";
-    } else if (json.owner === undefined && !userResponses.some(response => response.content.toLowerCase().includes("titular"))) {
+    } else if (json.owner === undefined || null) {
         json.complete = false;
-        json.question = "¿Eres el titular del objeto afectado?";
+        json.question = "¿Eres el titular afectado?";
     } else {
         json.complete = true;
         json.question = "";
